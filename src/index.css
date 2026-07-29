@@ -1,0 +1,22 @@
+@tailwind base; /* Load Tailwind base styles. */
+@tailwind components; /* Load Tailwind component styles. */
+@tailwind utilities; /* Load Tailwind utility classes. */
+:root { /* Define the app theme variables. */
+  color-scheme: dark; /* Use a dark color scheme. */
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; /* Choose a clean font stack. */
+  line-height: 1.5; /* Improve text readability. */
+  font-weight: 400; /* Use the default font weight. */
+  font-synthesis: none; /* Disable font synthesis. */
+  text-rendering: optimizeLegibility; /* Improve legibility. */
+  -webkit-font-smoothing: antialiased; /* Smooth fonts on WebKit. */
+  -moz-osx-font-smoothing: grayscale; /* Smooth fonts on Firefox. */
+}
+body { /* Style the body container. */
+  margin: 0; /* Remove the default margin. */
+  min-width: 320px; /* Keep a compact minimum width. */
+  min-height: 100vh; /* Fill the viewport height. */
+  background: #020617; /* Set a deep slate background. */
+}
+* { /* Reset the box model. */
+  box-sizing: border-box; /* Use border-box sizing. */
+}
