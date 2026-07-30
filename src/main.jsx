@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client"; // Load the DOM renderer.
 import App from "./App"; // Load the app component.
 import "./index.css"; // Load Tailwind styles.
 ReactDOM.createRoot(document.getElementById("root")).render( // Create the app root and render it.
-  <React.StrictMode> // Enable strict mode for development checks.
-    <App /> // Render the homepage component.
+  <React.StrictMode> 
+    <App />
   </React.StrictMode> // Close strict mode.
 );
