@@ -22,6 +22,11 @@ Build for production:
 - npm run build
 - npm run preview (or serve the generated dist/ folder with a static server)
 
+Backend setup:
+- Copy .env.example to .env and update DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, and PORT.
+- Install dependencies: npm install
+- Start the backend server: npm run server
+
 Notes:
 - Do NOT use VS Code Live Server (Go Live) for this project; it requires the Vite dev server to compile JSX and Tailwind.
 - If port 3000 is in use, change the --port value or omit --strictPort to let Vite pick a free port.

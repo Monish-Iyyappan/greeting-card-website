@@ -5,29 +5,77 @@ import WelcomePage from "./WelcomePage"; // Imports the page shown after a succe
 function App() { // Starts the main app component that renders the login screen.
   const [name, setName] = useState(""); // Stores the user's entered name.
   const [password, setPassword] = useState(""); // Stores the user's entered password.
-  const [error, setError] = useState(""); // Stores any validation message to show the user.
+  const [statusMessage, setStatusMessage] = useState(""); // Stores the current message text.
+  const [statusType, setStatusType] = useState(""); // Stores whether the current message is success or error.
+  const [statusScope, setStatusScope] = useState(""); // Stores whether the message belongs to login or signup.
+  const [isSubmitting, setIsSubmitting] = useState(false); // Tracks whether a login or signup request is in progress.
   const [isLoggedIn, setIsLoggedIn] = useState(false); // Tracks whether the user has successfully signed in.
 
-  const handleSubmit = (event) => { // Creates the form submit handler for validation and navigation.
+  const setStatus = (type, message, scope) => { // Set the current message and its type.
+    setStatusType(type);
+    setStatusMessage(message);
+    setStatusScope(scope);
+  };
+
+  const clearStatus = () => { // Clear the current message and its metadata.
+    setStatusType("");
+    setStatusMessage("");
+    setStatusScope("");
+  };
+
+  const clearLoginFields = () => { // Clear the login input fields.
+    setName("");
+    setPassword("");
+  };
+
+  const clearSignupFields = () => { // Clear the signup input fields.
+    setNewName("");
+    setNewPassword("");
+    setConfirmPassword("");
+  };
+
+  const handleSubmit = async (event) => { // Creates the form submit handler for validation and navigation.
     event.preventDefault(); // Prevents the browser from reloading the page on submit.
+    if (isSubmitting) return;
+    clearStatus();
 
     if (!name.trim() || !password.trim()) { // Checks whether both fields have been filled in.
-      setError("Please enter your name and password."); // Shows a helpful error message when values are missing.
-      return; // Stops the function so the page does not switch.
+      setStatus("error", "Please enter your name and password.", "login"); // Show a single login error message.
+      clearLoginFields(); // Clear inputs after the user submits.
+      return; // Stop before sending a request.
     }
 
-    setError(""); // Clears any previous error message.
-    setIsLoggedIn(true); // Switches the UI to the welcome page.
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: name.trim(), password }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        setStatus("error", result.message || "Unable to sign in. Please try again.", "login");
+      } else {
+        setStatus("success", "Login successful.", "login");
+        setIsLoggedIn(true); // Switches the UI to the welcome page.
+      }
+    } catch (fetchError) {
+      setStatus("error", "Unable to connect to the server. Please try again.", "login");
+    } finally {
+      setIsSubmitting(false);
+      clearLoginFields(); // Clear login fields after the request completes.
+    }
   };
 
   const handleBackToLogin = () => { // Creates the handler for returning to the sign-in screen.
     setIsLoggedIn(false); // Hides the welcome page.
-    setName(""); // Clears the name field.
-    setPassword(""); // Clears the password field.
-    setError(""); // Clears the error message.
+    clearLoginFields(); // Clears any login inputs.
+    clearStatus(); // Clears any status message shown on sign-in.
   };
 
-  {/* Hema remove all the comments(//) inside the return() thing.*/}
   // Additional state for the Sign Up modal and its form
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newName, setNewName] = useState("");
@@ -61,22 +109,25 @@ function App() { // Starts the main app component that renders the login screen.
 
   function openModal() {
     setModalErrors({});
-    setNewName("");
-    setNewPassword("");
-    setConfirmPassword("");
+    clearStatus();
+    clearSignupFields();
     setIsModalOpen(true);
   }
 
-  function closeModal() {
+  function closeModal(keepStatus = false) {
     setIsModalOpen(false);
+    if (!keepStatus && statusScope === "signup") {
+      clearStatus();
+    }
   }
 
   function handleOverlayClick(e) {
     if (e.target === overlayRef.current) closeModal();
   }
 
-  function handleSignUp(e) {
+  async function handleSignUp(e) {
     e.preventDefault();
+    if (isSubmitting) return;
     const errors = {};
     if (!newName.trim()) errors.newName = "Please enter a name.";
     if (!newPassword.trim()) errors.newPassword = "Please enter a password.";
@@ -84,12 +135,39 @@ function App() { // Starts the main app component that renders the login screen.
     if (newPassword && confirmPassword && newPassword !== confirmPassword) errors.confirmPassword = "Passwords do not match.";
 
     setModalErrors(errors);
+    clearStatus();
 
-    if (Object.keys(errors).length === 0) {
-      // Front-end only: pretend success and close modal. Do not change sign-in behavior.
-      closeModal();
-      // Optionally show a message or prefill the sign-in name with newName
-      setName(newName);
+    if (Object.keys(errors).length > 0) {
+      clearSignupFields();
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: newName.trim(),
+          password: newPassword,
+          confirmPassword,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        setStatus("error", result.message || "Unable to create account.", "signup");
+      } else {
+        closeModal(true);
+        setStatus("success", "Account created successfully. Please sign in.", "login");
+      }
+    } catch (fetchError) {
+      setStatus("error", "Unable to connect to the server. Please try again.", "signup");
+    } finally {
+      setIsSubmitting(false);
+      clearSignupFields();
     }
   }
 
@@ -139,11 +217,23 @@ function App() { // Starts the main app component that renders the login screen.
             /> {/*// Closes the password input field.*/}
           </label> {/*// Closes the password label container.*/}
 
-          {error ? <p className="text-sm text-rose-400">{error}</p> : null} {/*// Shows the validation error if one exists.*/}
+          {statusMessage && statusScope === "login" ? (
+            <div
+              className={`mt-2 rounded-2xl border px-4 py-3 text-sm ${
+                statusType === "success"
+                  ? "border-emerald-500 bg-emerald-500/10 text-emerald-200"
+                  : "border-rose-400 bg-rose-400/10 text-rose-200"
+              }`}
+            >
+              {statusType === "success" ? "✓ " : "✗ "}
+              {statusMessage}
+            </div>
+          ) : null}
 
           <button 
             className="w-full rounded-2xl bg-cyan-500 px-4 py-3 font-semibold text-slate-950 transition hover:bg-cyan-400"
             type="submit"
+            disabled={isSubmitting}
           > {/*// Opens the button content.*/}
             Continue {/*// Shows the button label.*/}
           </button> {/*// Closes the submit button.*/}
@@ -179,6 +269,18 @@ function App() { // Starts the main app component that renders the login screen.
             <div className="relative">
               <h2 id="signup-title" className="text-xl font-semibold text-white">Create New Account</h2>
               <p className="mt-1 text-sm text-slate-400">Create your account to get started.</p>
+              {statusMessage && statusScope === "signup" ? (
+                <div
+                  className={`mt-2 rounded-2xl border px-4 py-3 text-sm ${
+                    statusType === "success"
+                      ? "border-emerald-500 bg-emerald-500/10 text-emerald-200"
+                      : "border-rose-400 bg-rose-400/10 text-rose-200"
+                  }`}
+                >
+                  {statusType === "success" ? "✓ " : "✗ "}
+                  {statusMessage}
+                </div>
+              ) : null}
 
               {/* close X */}
               <button
@@ -258,7 +360,7 @@ function App() { // Starts the main app component that renders the login screen.
         </div>
       ) : null}
     </div>
-  ); {/*// Ends the returned JSX block.*/}
+  );
 }
 
 export default App; // Exports the component so it can be rendered.

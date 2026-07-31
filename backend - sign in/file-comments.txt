@@ -1,0 +1,107 @@
+Backend Sign-In File Changes and Explanations
+
+1) server.js (new file)
+- import express from "express"; // load Express to build the backend server.
+- import cors from "cors"; // allow browser requests from the frontend to the backend.
+- import path from "path"; // work with filesystem paths safely.
+- import { fileURLToPath } from "url"; // convert the ES module URL to a file path.
+- import authRoutes from "./routes/authRoutes.js"; // import authentication routes.
+- import config from "./config/config.js"; // import environment and database config.
+- import { initializeDatabase } from "./database/db.js"; // import database initialization logic.
+- import { errorHandler } from "./middleware/errorHandler.js"; // import global error handling.
+- const app = express(); // create the Express application.
+- const __filename = fileURLToPath(import.meta.url); // determine current file name.
+- const __dirname = path.dirname(__filename); // determine current directory.
+- app.use(cors()); // enable CORS for all routes.
+- app.use(express.json()); // parse incoming JSON request bodies.
+- app.use(authRoutes); // register authentication routes with the app.
+- if (process.env.NODE_ENV === "production") { ... } // serve the built frontend in production.
+- app.use(errorHandler); // register centralized error middleware.
+- initializeDatabase().then(...).catch(...) // create database/table and start listening on the configured port.
+
+2) config/config.js (new file)
+- import dotenv from "dotenv"; // load environment variables from .env.
+- dotenv.config(); // apply .env values to process.env.
+- const { DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT, PORT } = process.env; // read needed config variables.
+- if (!DB_HOST || !DB_USER || !DB_PASSWORD || !DB_NAME) { throw new Error(...); } // fail early when database config is missing.
+- export default { db: { host: DB_HOST, user: DB_USER, password: DB_PASSWORD, database: DB_NAME, port: DB_PORT ? Number(DB_PORT) : 3306, waitForConnections: true, connectionLimit: 10, queueLimit: 0 }, port: PORT ? Number(PORT) : 4000 }; // expose typed database and server settings.
+
+3) database/db.js (new file)
+- import mysql from "mysql2/promise"; // use promise-based MySQL client.
+- import config from "../config/config.js"; // import database configuration.
+- let pool; // declare a pool reference to share after initialization.
+- export async function initializeDatabase() { ... } // function to create database, open pool, and create users table.
+- const connection = await mysql.createConnection({ host: config.db.host, user: config.db.user, password: config.db.password, port: config.db.port }); // connect without selecting a database yet.
+- await connection.query("CREATE DATABASE IF NOT EXISTS ?? CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;", [config.db.database]); // create the database if it does not exist.
+- await connection.end(); // close the temporary connection.
+- pool = mysql.createPool(config.db); // build a connection pool for all queries.
+- const createTableQuery = `...`; // define SQL for the users table with id, username, password, created_at.
+- await pool.query(createTableQuery); // create the users table if missing.
+- export function getPool() { if (!pool) throw new Error("Database not initialized. Call initializeDatabase() first."); return pool; } // return the pool once initialized.
+
+4) models/userModel.js (new file)
+- import { getPool } from "../database/db.js"; // import the initialized pool accessor.
+- export async function findUserByUsername(username) { const pool = getPool(); const [rows] = await pool.execute("SELECT id, username, password FROM users WHERE username = ?", [username]); return rows[0]; } // query the users table for a matching username.
+- export async function createUser(username, hashedPassword) { const pool = getPool(); const [result] = await pool.execute("INSERT INTO users (username, password) VALUES (?, ?)", [username, hashedPassword]); return result.insertId; } // insert a new user record securely.
+
+5) controllers/authController.js (new file)
+- import bcrypt from "bcrypt"; // use bcrypt to hash and verify passwords.
+- import { findUserByUsername, createUser } from "../models/userModel.js"; // import user database helpers.
+- const SALT_ROUNDS = 10; // define bcrypt work factor.
+- export async function signup(req, res, next) { ... } // handle signup logic.
+- const { username, password, confirmPassword } = req.body; // pull signup values from request body.
+- const trimmedUsername = username?.trim(); // normalize the username input.
+- validate username, password, and confirmPassword, returning errors for empty values or mismatched passwords. // ensure input is correct.
+- const existingUser = await findUserByUsername(trimmedUsername); // check duplicate username.
+- if (existingUser) return res.status(409).json({ success: false, message: "Username already exists." }); // return duplicate error.
+- const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS); // hash the password.
+- await createUser(trimmedUsername, hashedPassword); // save the new user.
+- return res.status(201).json({ success: true, message: "Sign up successful." }); // return signup success.
+- export async function login(req, res, next) { ... } // handle login logic.
+- const { username, password } = req.body; // pull login values.
+- const trimmedUsername = username?.trim(); // normalize username.
+- validate username and password, returning errors for empty values. // ensure required login fields are present.
+- const user = await findUserByUsername(trimmedUsername); // fetch stored user.
+- if (!user) return res.status(404).json({ success: false, message: "User does not exist." }); // return missing user error.
+- const isPasswordValid = await bcrypt.compare(password, user.password); // compare password with stored hash.
+- if (!isPasswordValid) return res.status(401).json({ success: false, message: "Incorrect password." }); // return wrong password error.
+- return res.status(200).json({ success: true, message: "Login successful" }); // return login success.
+
+6) routes/authRoutes.js (new file)
+- import express from "express"; // load Express router helper.
+- import { signup, login } from "../controllers/authController.js"; // import signup and login controller functions.
+- const router = express.Router(); // create a router instance.
+- router.post("/signup", signup); // map POST /signup to signup controller.
+- router.post("/login", login); // map POST /login to login controller.
+- export default router; // export the router for use in server.js.
+
+7) middleware/errorHandler.js (new file)
+- export function errorHandler(err, req, res, next) { console.error(err); res.status(500).json({ success: false, message: "An unexpected error occurred." }); } // catch unhandled errors and return a JSON response.
+
+8) .env.example (new file)
+- DB_HOST=localhost // example host for MySQL.
+- DB_PORT=3306 // example MySQL port.
+- DB_USER=root // example database user.
+- DB_PASSWORD=your_database_password // placeholder for the database password.
+- DB_NAME=auth_app // example database name.
+- PORT=4000 // default backend port.
+
+9) src/App.jsx (changed file)
+- added loginMessage state for showing backend results without altering existing UI.
+- added isSubmitting state to avoid duplicate requests.
+- updated handleSubmit to send POST /login with JSON body and handle backend responses.
+- updated handleBackToLogin to clear loginMessage when returning to login.
+- added signupMessage state to show backend signup errors inside the modal.
+- updated handleSignUp to validate signup fields and send POST /signup with JSON body.
+- on successful signup, close the modal, prefill the login name, and show a success note.
+- did not change existing layout, styling, or button structure.
+
+10) vite.config.js (changed file)
+- added a dev server proxy so /login and /signup requests from the React app go to localhost:4000 where Express runs.
+
+11) package.json (changed file)
+- added Express, CORS, dotenv, bcrypt, and mysql2 dependencies.
+- added npm script "server" to start the backend using node server.js.
+
+12) README.txt (changed file)
+- added backend setup instructions showing how to use .env and how to start the backend.
