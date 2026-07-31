@@ -30,5 +30,3 @@ Backend setup:
 Notes:
 - Do NOT use VS Code Live Server (Go Live) for this project; it requires the Vite dev server to compile JSX and Tailwind.
 - If port 3000 is in use, change the --port value or omit --strictPort to let Vite pick a free port.
-
-Created by Copilot CLI agent: a small demo homepage for testing.
