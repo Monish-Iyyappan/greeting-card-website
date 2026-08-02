@@ -2,10 +2,10 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
-import authRoutes from "./routes/authRoutes.js";
-import config from "./config/config.js";
-import { initializeDatabase } from "./database/db.js";
-import { errorHandler } from "./middleware/errorHandler.js";
+import authRoutes from "./backend - sign in/authRoutes.js";
+import config from "./backend - sign in/config.js";
+import { initializeDatabase } from "./backend - sign in/db.js";
+import { errorHandler } from "./backend - sign in/errorHandler.js";
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);

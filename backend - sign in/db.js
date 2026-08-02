@@ -1,5 +1,5 @@
 import mysql from "mysql2/promise"; // Import the promise-based MySQL client.
-import config from "../config/config.js"; // Import the database configuration.
+import config from "../backend - sign in/config.js"; // Import the database configuration.
 
 let pool; // Create a variable to store the connection pool.
 

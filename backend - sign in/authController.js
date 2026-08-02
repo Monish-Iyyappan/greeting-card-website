@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt"; // Import bcrypt to hash and compare passwords.
-import { findUserByUsername, createUser } from "../models/userModel.js"; // Import user database functions.
+import authRoutes from "../backend - sign in/authRoutes.js";
+import { findUserByUsername, createUser } from "../backend - sign in/userModel.js"; // Import user database functions.
 
 const SALT_ROUNDS = 10; // Set how many salt rounds bcrypt should use.
 

@@ -1,4 +1,4 @@
-import { getPool } from "../database/db.js"; // Import the function that returns the database pool.
+import { getPool } from "../backend - sign in/db.js"; // Import the function that returns the database pool.
 
 export async function findUserByUsername(username) { // Find a user by username.
   const pool = getPool(); // Get the database connection pool.

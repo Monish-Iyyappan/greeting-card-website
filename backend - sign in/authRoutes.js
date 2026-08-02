@@ -1,5 +1,5 @@
 import express from "express"; // Import Express to create a router.
-import { signup, login } from "../controllers/authController.js"; // Import signup and login handlers.
+import { signup, login } from "../backend - sign in/authController.js"; // Import signup and login handlers.
 
 const router = express.Router(); // Create a new router.
 
